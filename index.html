@@ -2,33 +2,36 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
   <title>Antes de Continuar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
-      width: 100%; height: 100%; overflow: hidden;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
       background: rgb(6, 8, 24);
       font-family: 'Georgia', serif;
       color: #fff;
+      position: fixed;
+      inset: 0;
     }
     #page-home, #page-experiencia, #page-memoria {
       position: fixed; inset: 0; display: none;
       justify-content: center; align-items: center;
       flex-direction: column;
+      touch-action: none;
+      overflow: hidden;
     }
     #page-home.active, #page-experiencia.active, #page-memoria.active {
       display: flex;
     }
 
     /* HOME */
-    #home-stars {
-      position: fixed; inset: 0; z-index: 0;
-      background: radial-gradient(ellipse at center, #0d1130 0%, #06081a 60%, #030510 100%);
-    }
     #home-content {
       position: relative; z-index: 10;
       text-align: center;
@@ -80,6 +83,7 @@
     #page-experiencia { background: rgb(6, 8, 24); }
     #canvas-main, #canvas-particles {
       position: fixed; inset: 0;
+      touch-action: none;
     }
     #canvas-main { z-index: 1; }
     #canvas-particles { z-index: 2; pointer-events: none; }
@@ -118,22 +122,20 @@
       z-index: 20;
       font-family: 'Georgia', serif;
       text-transform: lowercase;
+      white-space: nowrap;
     }
     #btn-continuar:hover { color: #fff; }
 
     /* MEMORIA */
-    #page-memoria {
-      background: #000;
-    }
-    #memoria-img-wrap {
-      position: fixed; inset: 0;
-    }
+    #page-memoria { background: #000; overflow: hidden; }
+    #memoria-img-wrap { position: fixed; inset: 0; }
     #memoria-img {
       width: 100%; height: 100%;
       object-fit: cover;
       opacity: 0;
       transition: opacity 4s ease;
       filter: brightness(0.55) saturate(0.7);
+      display: block;
     }
     #memoria-img.visible { opacity: 1; }
     #memoria-overlay {
@@ -168,7 +170,7 @@
 
 <!-- PAGE: HOME -->
 <div id="page-home" class="active">
-  <canvas id="stars-canvas" style="position:fixed;inset:0;z-index:0;"></canvas>
+  <canvas id="stars-canvas" style="position:fixed;inset:0;z-index:0;touch-action:none;"></canvas>
   <div id="home-content">
     <div id="home-line-top"></div>
     <p id="home-text">
@@ -185,13 +187,15 @@
   <canvas id="canvas-particles"></canvas>
   <div id="exp-label"></div>
   <div id="exp-quote">"Algumas presenças continuam mesmo em silêncio."</div>
-  <button id="btn-continuar" onclick="goToMemoria()">continuar →</button>
+  <button id="btn-continuar">continuar →</button>
 </div>
 
 <!-- PAGE: MEMÓRIA -->
 <div id="page-memoria">
   <div id="memoria-img-wrap">
-    <img id="memoria-img" src="https://drive.google.com/thumbnail?id=1GnHHQrv5qz3bx7KnEPByLWAPIX5LcdtJ&sz=w2048" alt="Memória" crossorigin="anonymous" />
+    <img id="memoria-img"
+      src="https://lh3.googleusercontent.com/d/1GnHHQrv5qz3bx7KnEPByLWAPIX5LcdtJ"
+      alt="Memória" />
     <div id="memoria-overlay"></div>
     <div id="memoria-text-wrap">
       <p id="memoria-text">
@@ -204,6 +208,12 @@
 </div>
 
 <script>
+// ─── BLOQUEAR SCROLL/BOUNCE GLOBAL ──────────────────────────────────────────
+document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+document.addEventListener('touchstart', function(e) {
+  if (e.target.tagName !== 'BUTTON') e.preventDefault();
+}, { passive: false });
+
 // ─── NAVEGAÇÃO ───────────────────────────────────────────────────────────────
 function showPage(id) {
   document.querySelectorAll('#page-home, #page-experiencia, #page-memoria')
@@ -216,6 +226,7 @@ function showPage(id) {
   const canvas = document.getElementById('stars-canvas');
   const ctx = canvas.getContext('2d');
   let stars = [];
+
   function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -231,12 +242,10 @@ function showPage(id) {
   resize();
   window.addEventListener('resize', resize);
 
-  let frame = 0;
   function drawStars() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'rgb(6,8,24)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    frame++;
     stars.forEach(s => {
       s.phase += s.speed;
       const alpha = (Math.sin(s.phase) * 0.5 + 0.5) * s.a;
@@ -249,13 +258,8 @@ function showPage(id) {
   }
   drawStars();
 
-  // Fade in text then button
-  setTimeout(() => {
-    document.getElementById('home-content').classList.add('visible');
-  }, 600);
-  setTimeout(() => {
-    document.getElementById('btn-comecar').classList.add('visible');
-  }, 2000);
+  setTimeout(() => document.getElementById('home-content').classList.add('visible'), 600);
+  setTimeout(() => document.getElementById('btn-comecar').classList.add('visible'), 2000);
 
   document.getElementById('btn-comecar').addEventListener('click', () => {
     showPage('page-experiencia');
@@ -286,42 +290,31 @@ function initExperiencia() {
   window.addEventListener('resize', resize);
 
   // Audio
-  let audioCtx = null;
-  function getAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return audioCtx;
-  }
-
-  let gainNode = null, oscNode = null;
+  let audioCtx = null, gainNode = null, oscNode = null, audioStarted = false;
   function startAudio() {
     try {
-      const ac = getAudio();
-      gainNode = ac.createGain();
-      gainNode.gain.setValueAtTime(0, ac.currentTime);
-      gainNode.connect(ac.destination);
-      oscNode = ac.createOscillator();
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.connect(audioCtx.destination);
+      oscNode = audioCtx.createOscillator();
       oscNode.type = 'sine';
-      oscNode.frequency.setValueAtTime(80, ac.currentTime);
+      oscNode.frequency.setValueAtTime(80, audioCtx.currentTime);
       oscNode.connect(gainNode);
       oscNode.start();
     } catch(e) {}
   }
 
   // State
-  let phase = 0; // 0=breath, 1=constellations, 2=touch, 3=done, 4=finale
-  let breathVal = 0; // 0..1
+  let phase = 0;
+  let breathVal = 0;
   let pressing = false;
-  let breathCycles = 0;
-  let holdCount = 0;
+  let breathCycles = 0, holdCount = 0;
   let particles = [];
-  let stars2 = [];
-  let constellations = [];
-  let pointerX = W/2, pointerY = H/2;
-  let animFrame = 0;
-  let frameCount = 0;
+  let stars2 = [], constellations = [];
+  let pointerX = W / 2, pointerY = H / 2;
   let phaseFrame = 0;
-  let constellationDone = false;
-  let audioStarted = false;
+  let constellationStart = null;
 
   function setLabel(text, opacity) {
     label.textContent = text;
@@ -329,9 +322,7 @@ function initExperiencia() {
   }
 
   function setPhase(p) {
-    phase = p;
-    phaseFrame = 0;
-    particles = [];
+    phase = p; phaseFrame = 0; particles = [];
     if (p === 1) {
       setTimeout(() => {
         stars2 = Array.from({ length: 80 }, () => ({
@@ -341,6 +332,7 @@ function initExperiencia() {
         }));
         setLabel('mova o dedo — crie constelações', '0.85');
       }, 700);
+      constellationStart = performance.now();
     }
     if (p === 2) {
       mCtx.clearRect(0, 0, W, H);
@@ -349,13 +341,10 @@ function initExperiencia() {
     }
     if (p === 3) {
       setLabel('', '0');
-      // Submit to google forms
       sendJourneyComplete();
       setTimeout(() => {
         quote.style.opacity = '1';
-        setTimeout(() => {
-          btnCont.style.opacity = '1';
-        }, 2200);
+        setTimeout(() => { btnCont.style.opacity = '1'; }, 2200);
       }, 800);
     }
   }
@@ -363,45 +352,63 @@ function initExperiencia() {
   function sendJourneyComplete() {
     try {
       const url = 'https://docs.google.com/forms/d/e/1FAIpQLSdwhlo8fdEGi7vjCGlY2FeBCBfhYdnQjgGCLKFCGgceTNnjGw/formResponse';
-      const body = new URLSearchParams({'entry.1196602189': 'Jornada concluída!'});
-      fetch(url, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString() }).catch(() => {});
+      const body = new URLSearchParams({ 'entry.1196602189': 'Jornada concluída!' });
+      fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() }).catch(() => {});
     } catch(e) {}
   }
 
-  function onPointer(e) {
-    const t = e.touches ? e.touches[0] : e;
+  function getTouch(e) {
+    return e.touches ? e.touches[0] : e;
+  }
+
+  function handleDown(e) {
+    const t = getTouch(e);
     pointerX = t.clientX; pointerY = t.clientY;
+    pressing = true;
     if (!audioStarted) { startAudio(); audioStarted = true; }
   }
 
-  window.addEventListener('pointerdown', e => { onPointer(e); pressing = true; });
-  window.addEventListener('pointerup', () => { pressing = false; });
-  window.addEventListener('pointermove', e => { if (pressing || phase >= 1) onPointer(e); });
-  window.addEventListener('touchstart', e => { onPointer(e); pressing = true; }, { passive: true });
-  window.addEventListener('touchend', () => { pressing = false; });
-  window.addEventListener('touchmove', e => { if (pressing || phase >= 1) onPointer(e); }, { passive: true });
+  function handleMove(e) {
+    // prevent scroll and pull-to-refresh always
+    e.preventDefault();
+    if (!pressing && phase < 1) return;
+    const t = getTouch(e);
+    pointerX = t.clientX; pointerY = t.clientY;
+  }
 
-  const MAX_HOLD = 3; // full breath cycles before phase transition
-  const CONSTELLATION_TIME = 18000; // 18s in constellation phase
+  function handleUp() { pressing = false; }
 
-  let constellationStart = null;
+  // Use non-passive listeners so preventDefault works
+  mainCanvas.addEventListener('touchstart', handleDown, { passive: false });
+  mainCanvas.addEventListener('touchmove', handleMove, { passive: false });
+  mainCanvas.addEventListener('touchend', handleUp, { passive: false });
+  mainCanvas.addEventListener('mousedown', handleDown);
+  mainCanvas.addEventListener('mousemove', e => { if (pressing || phase >= 1) { pointerX = e.clientX; pointerY = e.clientY; } });
+  mainCanvas.addEventListener('mouseup', handleUp);
 
+  // Also capture on window for the experience page
+  window.addEventListener('touchstart', function(e) {
+    if (document.getElementById('page-experiencia').classList.contains('active')) handleDown(e);
+  }, { passive: false });
+  window.addEventListener('touchmove', function(e) {
+    if (document.getElementById('page-experiencia').classList.contains('active')) { e.preventDefault(); const t = e.touches[0]; pointerX = t.clientX; pointerY = t.clientY; }
+  }, { passive: false });
+  window.addEventListener('touchend', function() {
+    if (document.getElementById('page-experiencia').classList.contains('active')) handleUp();
+  }, { passive: false });
+
+  // Breath phase
   function drawBreath() {
     mCtx.fillStyle = 'rgba(6,8,24,0.22)';
     mCtx.fillRect(0, 0, W, H);
 
-    if (pressing) {
-      breathVal = Math.min(1, breathVal + 0.016);
-    } else {
-      breathVal = Math.max(0, breathVal - 0.013);
-    }
-
-    const prevFull = breathVal >= 0.95;
+    breathVal = pressing
+      ? Math.min(1, breathVal + 0.016)
+      : Math.max(0, breathVal - 0.013);
 
     const r = 70 + breathVal * 112;
     const rOuter = r + 32 * breathVal;
 
-    // Outer glow
     const g = mCtx.createRadialGradient(W/2, H/2, r*0.6, W/2, H/2, rOuter);
     g.addColorStop(0, `rgba(160,185,255,${0.18 * breathVal})`);
     g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -410,20 +417,17 @@ function initExperiencia() {
     mCtx.fillStyle = g;
     mCtx.fill();
 
-    // Main circle
     mCtx.beginPath();
     mCtx.arc(W/2, H/2, r, 0, Math.PI*2);
     mCtx.strokeStyle = `rgba(255,255,255,${0.3 + 0.6*breathVal})`;
     mCtx.lineWidth = 1.5 + breathVal * 1.8;
     mCtx.stroke();
 
-    // Inner dot
     mCtx.beginPath();
-    mCtx.arc(W/2, H/2, r*0.22*breathVal, 0, Math.PI*2);
+    mCtx.arc(W/2, H/2, r * 0.22 * breathVal, 0, Math.PI*2);
     mCtx.fillStyle = `rgba(200,215,255,${0.14*breathVal})`;
     mCtx.fill();
 
-    // Particles on full breath
     if (pressing && breathVal > 0.25 && Math.random() < 0.35) {
       const angle = Math.random() * Math.PI * 2;
       particles.push({
@@ -431,34 +435,27 @@ function initExperiencia() {
         y: H/2 + Math.sin(angle)*(r + Math.random()*15),
         vx: Math.cos(angle)*(0.25+Math.random()*0.5),
         vy: Math.sin(angle)*(0.25+Math.random()*0.5),
-        life: 1,
-        size: Math.random()*1.5+0.4,
+        life: 1, size: Math.random()*1.5+0.4,
         color: 'rgba(170,205,255,0.85)'
       });
     }
 
-    // Breath label
-    const lbl = (!pressing && breathVal > 0.12) ? 'Solte · Expire' : 'Segure · Inspire';
-    setLabel(lbl, '0.88');
+    setLabel((!pressing && breathVal > 0.12) ? 'Solte · Expire' : 'Segure · Inspire', '0.88');
 
-    // Count full breath cycles
-    if (breathVal >= 0.95 && !holdCount) { holdCount++; }
+    if (breathVal >= 0.95 && !holdCount) holdCount++;
     if (breathVal < 0.08 && holdCount) { holdCount = 0; breathCycles++; }
 
-    if (breathCycles >= MAX_HOLD) {
-      // stop audio
+    if (breathCycles >= 3) {
       if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.8);
       setPhase(1);
-      constellationStart = performance.now();
     }
   }
 
+  // Constellation phase
   function drawConstellations() {
-    // Fade to dark
     mCtx.fillStyle = 'rgba(6,8,24,0.12)';
     mCtx.fillRect(0, 0, W, H);
 
-    // Draw stars
     stars2.forEach(s => {
       mCtx.beginPath();
       mCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
@@ -466,11 +463,11 @@ function initExperiencia() {
       mCtx.fill();
     });
 
-    // Draw constellation lines near pointer
     if (pressing) {
       constellations.push({ x: pointerX, y: pointerY });
       if (constellations.length > 80) constellations.shift();
     }
+
     if (constellations.length > 1) {
       mCtx.beginPath();
       mCtx.moveTo(constellations[0].x, constellations[0].y);
@@ -481,7 +478,6 @@ function initExperiencia() {
       mCtx.lineWidth = 1;
       mCtx.stroke();
 
-      // Dots at positions
       constellations.forEach((p, i) => {
         if (i % 6 === 0) {
           mCtx.beginPath();
@@ -492,15 +488,11 @@ function initExperiencia() {
       });
     }
 
-    // Check time
-    if (constellationStart && performance.now() - constellationStart > CONSTELLATION_TIME) {
-      setPhase(2);
-    }
+    if (constellationStart && performance.now() - constellationStart > 18000) setPhase(2);
   }
 
-  let touchTrails = [];
-  let finalParticles = [];
-
+  // Final touch phase
+  let touchTrails = [], finalParticles = [];
   function drawTouch() {
     mCtx.fillStyle = 'rgba(6,8,24,0.08)';
     mCtx.fillRect(0, 0, W, H);
@@ -511,15 +503,14 @@ function initExperiencia() {
         const angle = Math.random() * Math.PI * 2;
         finalParticles.push({
           x: pointerX, y: pointerY,
-          vx: Math.cos(angle) * (0.5 + Math.random()*1.5),
-          vy: Math.sin(angle) * (0.5 + Math.random()*1.5),
+          vx: Math.cos(angle)*(0.5+Math.random()*1.5),
+          vy: Math.sin(angle)*(0.5+Math.random()*1.5),
           life: 1, size: Math.random()*2+0.5,
           color: `rgba(${Math.floor(160+Math.random()*80)},${Math.floor(180+Math.random()*60)},255,0.85)`
         });
       }
     }
 
-    // Draw trails
     touchTrails.forEach(t => {
       t.life -= 0.012;
       if (t.life > 0) {
@@ -534,11 +525,9 @@ function initExperiencia() {
     });
     touchTrails = touchTrails.filter(t => t.life > 0);
 
-    // Particles
     pCtx.clearRect(0, 0, W, H);
     finalParticles.forEach(p => {
-      p.x += p.vx; p.y += p.vy;
-      p.life -= 0.018;
+      p.x += p.vx; p.y += p.vy; p.life -= 0.018;
       if (p.life > 0) {
         pCtx.beginPath();
         pCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
@@ -549,9 +538,7 @@ function initExperiencia() {
     finalParticles = finalParticles.filter(p => p.life > 0);
 
     phaseFrame++;
-    if (phaseFrame > 380) { // ~6-7 seconds
-      setPhase(3);
-    }
+    if (phaseFrame > 380) setPhase(3);
   }
 
   function drawParticles() {
@@ -568,47 +555,44 @@ function initExperiencia() {
     particles = particles.filter(p => p.life > 0);
   }
 
-  // Update audio
   function updateAudio() {
     if (!gainNode || !oscNode || !audioCtx) return;
     try {
-      const targetGain = pressing ? 0.18 + breathVal*0.2 : 0.1 + breathVal*0.1;
-      const targetFreq = pressing ? 150 + breathVal*580 : 80 + breathVal*340;
-      gainNode.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.1);
-      oscNode.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
+      gainNode.gain.setTargetAtTime(pressing ? 0.18+breathVal*0.2 : 0.1+breathVal*0.1, audioCtx.currentTime, 0.1);
+      oscNode.frequency.setTargetAtTime(pressing ? 150+breathVal*580 : 80+breathVal*340, audioCtx.currentTime, 0.12);
     } catch(e) {}
   }
 
   function loop() {
-    animFrame = requestAnimationFrame(loop);
-    frameCount++;
-
-    if (phase === 0) {
-      drawBreath();
-      drawParticles();
-      updateAudio();
-    } else if (phase === 1) {
-      drawConstellations();
-    } else if (phase === 2) {
-      drawTouch();
-    } else {
-      // Done — just keep canvas dark
+    requestAnimationFrame(loop);
+    if (phase === 0) { drawBreath(); drawParticles(); updateAudio(); }
+    else if (phase === 1) { drawConstellations(); }
+    else if (phase === 2) { drawTouch(); }
+    else {
       mCtx.fillStyle = 'rgba(6,8,24,0.04)';
       mCtx.fillRect(0, 0, W, H);
     }
   }
 
-  // Initial label
+  btnCont.addEventListener('click', goToMemoria);
   setTimeout(() => setLabel('Segure · Inspire', '0.88'), 800);
   loop();
 }
 
+// ─── MEMÓRIA ──────────────────────────────────────────────────────────────────
 function goToMemoria() {
   showPage('page-memoria');
   const img = document.getElementById('memoria-img');
   const textWrap = document.getElementById('memoria-text-wrap');
-  setTimeout(() => { img.classList.add('visible'); }, 300);
-  setTimeout(() => { textWrap.classList.add('visible'); }, 2500);
+
+  // Fallback: try alternate URL if main fails
+  img.onerror = function() {
+    this.onerror = null;
+    this.src = 'https://drive.google.com/uc?export=view&id=1GnHHQrv5qz3bx7KnEPByLWAPIX5LcdtJ';
+  };
+
+  setTimeout(() => img.classList.add('visible'), 300);
+  setTimeout(() => textWrap.classList.add('visible'), 2500);
 }
 </script>
 <script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-repl-id="9c165c02-7ae4-4337-97d4-e80e28346a1c"></script></body>
