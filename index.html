@@ -81,6 +81,7 @@
     #btn-continuar {
       position:fixed; bottom:15%; left:50%; transform:translateX(-50%);
       opacity:0; transition:opacity 2.5s ease;
+      pointer-events:none;
       background:transparent; border:none;
       border-bottom:1px solid rgba(200,218,255,0.4);
       color:rgba(215,228,255,0.9);
@@ -261,9 +262,8 @@ function initExperiencia() {
     } catch(e){}
   }
 
-  const PHASE_MS = 30000;
-  // phaseChanging guards against double nextPhase() calls in the same tick
-  let phase=0, phaseStart=performance.now(), phaseChanging=false;
+  // Phase is driven by setTimeout — NOT per-frame timer checks (avoids skip bugs)
+  let phase = 0;
   let bv=0, pressing=false, pressStart=0, showRelease=false;
   let parts=[], stars2=[], consts=[];
   let px=W/2, py=H/2;
@@ -271,43 +271,40 @@ function initExperiencia() {
 
   function setLabel(t,o){ lbl.textContent=t; lbl.style.opacity=o; }
 
-  function nextPhase() {
-    if(phaseChanging) return;
-    phaseChanging=true;
-    phase++; phaseStart=performance.now(); parts=[];
-    setTimeout(()=>{ phaseChanging=false; },200);
+  // ── Schedule phase transitions with reliable setTimeouts ─────────────────────
+  // Phase 0 → 1 after 30s (end of breathing)
+  setTimeout(() => {
+    phase = 1;
+    mCtx.clearRect(0,0,W,H);
+    if(gain&&AC) gain.gain.setTargetAtTime(0,AC.currentTime,0.8);
+    stars2 = Array.from({length:80},()=>({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.5+0.3, a:Math.random()*0.7+0.2
+    }));
+    setLabel('mova o dedo — crie constelações','0.85');
+  }, 30000);
 
-    if (phase===1) {
-      mCtx.clearRect(0,0,W,H);
+  // Phase 1 → 2 after 60s (end of constellations)
+  setTimeout(() => {
+    phase = 2;
+    mCtx.clearRect(0,0,W,H);
+    consts = [];
+    setLabel('deslize o dedo pela tela','0.85');
+  }, 60000);
+
+  // Phase 2 → 3 after 90s (end of touch trails)
+  setTimeout(() => {
+    phase = 3;
+    setLabel('','0');
+    sendForm();
+    setTimeout(()=>{
+      quote.style.opacity = '1';
       setTimeout(()=>{
-        stars2=Array.from({length:80},()=>({
-          x:Math.random()*W,y:Math.random()*H,
-          r:Math.random()*1.5+0.3,a:Math.random()*0.7+0.2
-        }));
-        setLabel('mova o dedo — crie constelações','0.85');
-      },700);
-    }
-    if (phase===2) {
-      mCtx.clearRect(0,0,W,H);
-      consts=[];
-      // Seed ambient blue particles so screen is never blank
-      ambients=Array.from({length:18},()=>({
-        x:Math.random()*W, y:Math.random()*H,
-        vx:(Math.random()-0.5)*0.4, vy:-(Math.random()*0.5+0.2),
-        life:Math.random()*0.6+0.4, size:Math.random()*2+0.8,
-        r:Math.floor(110+Math.random()*80), g2:Math.floor(140+Math.random()*80)
-      }));
-      setLabel('deslize o dedo pela tela','0.85');
-    }
-    if (phase===3) {
-      setLabel('','0');
-      sendForm();
-      setTimeout(()=>{
-        quote.style.opacity='1';
-        setTimeout(()=>{ btnC.style.opacity='1'; },2200);
-      },800);
-    }
-  }
+        btnC.style.opacity = '1';
+        btnC.style.pointerEvents = 'auto';
+      }, 2200);
+    }, 800);
+  }, 90000);
 
   function sendForm() {
     try {
@@ -336,7 +333,6 @@ function initExperiencia() {
   // ── CENA 1: Respiração ───────────────────────────────────────────────────────
   function drawBreath() {
     mCtx.fillStyle='rgba(6,8,24,0.22)'; mCtx.fillRect(0,0,W,H);
-    // Expand fast when pressing, shrink very slowly when released
     bv = pressing ? Math.min(1,bv+0.016) : Math.max(0,bv-0.004);
     const r=70+bv*112, ro=r+32*bv;
     const g=mCtx.createRadialGradient(W/2,H/2,r*.6,W/2,H/2,ro);
@@ -351,7 +347,6 @@ function initExperiencia() {
       parts.push({x:W/2+Math.cos(a)*(r+Math.random()*15),y:H/2+Math.sin(a)*(r+Math.random()*15),
         vx:Math.cos(a)*(0.25+Math.random()*0.5),vy:Math.sin(a)*(0.25+Math.random()*0.5),life:1,size:Math.random()*1.5+0.4});
     }
-    // Show "Solte · Expire" only after 3s of holding; keep it until circle fully closed
     if(pressing && Date.now()-pressStart>=3000) showRelease=true;
     if(!pressing && bv<0.05) showRelease=false;
     setLabel(showRelease ? 'Solte · Expire' : 'Segure · Inspire', '0.88');
@@ -360,7 +355,6 @@ function initExperiencia() {
       if(p.life>0){pCtx.beginPath();pCtx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
         pCtx.fillStyle='rgba(170,205,255,'+p.life+')';pCtx.fill();}});
     parts=parts.filter(p=>p.life>0);
-    if(!phaseChanging&&performance.now()-phaseStart>=PHASE_MS){if(gain&&AC)gain.gain.setTargetAtTime(0,AC.currentTime,0.8);nextPhase();}
   }
 
   // ── CENA 2: Constelações ─────────────────────────────────────────────────────
@@ -376,47 +370,42 @@ function initExperiencia() {
       consts.forEach((c,i)=>{if(i%6===0){mCtx.beginPath();mCtx.arc(c.x,c.y,2,0,Math.PI*2);
         mCtx.fillStyle='rgba(200,220,255,0.6)';mCtx.fill();}});
     }
-    if(!phaseChanging&&performance.now()-phaseStart>=PHASE_MS)nextPhase();
   }
 
   // ── CENA 3: Rastro de luz azul ───────────────────────────────────────────────
   function drawTouch() {
     mCtx.fillStyle='rgba(6,8,24,0.06)';mCtx.fillRect(0,0,W,H);
-
-    // Ambient floating particles — always visible even without touch
-    if(Math.random()<0.25){
+    // Ambient rising particles — screen is never blank
+    if(Math.random()<0.3){
       ambients.push({
         x:Math.random()*W, y:H+10,
-        vx:(Math.random()-0.5)*0.5, vy:-(Math.random()*0.7+0.3),
-        life:1, size:Math.random()*2+0.5,
+        vx:(Math.random()-0.5)*0.6, vy:-(Math.random()*0.8+0.4),
+        life:1, size:Math.random()*2+0.6,
         r:Math.floor(100+Math.random()*80), g2:Math.floor(130+Math.random()*90)
       });
     }
-    ambients.forEach(a=>{a.x+=a.vx;a.y+=a.vy;a.life-=0.006;
-      if(a.life>0){pCtx.beginPath();pCtx.arc(a.x,a.y,a.size*a.life,0,Math.PI*2);
-        pCtx.fillStyle='rgba('+a.r+','+a.g2+',255,'+(a.life*0.55)+')';pCtx.fill();}});
+    ambients.forEach(a=>{a.x+=a.vx;a.y+=a.vy;a.life-=0.005;});
     ambients=ambients.filter(a=>a.life>0&&a.y>-20);
-
-    // Touch trails
+    // Touch trails on the main canvas
     if(pressing){
       trails.push({x:px,y:py,life:1});
       for(let i=0;i<4;i++){const a=Math.random()*Math.PI*2;
-        fparts.push({x:px,y:py,vx:Math.cos(a)*(0.5+Math.random()*2),vy:Math.sin(a)*(0.5+Math.random()*2),
-          life:1,size:Math.random()*2.5+0.8,r:Math.floor(130+Math.random()*100),g2:Math.floor(160+Math.random()*80)});}
+        fparts.push({x:px,y:py,vx:Math.cos(a)*(0.6+Math.random()*2.2),vy:Math.sin(a)*(0.6+Math.random()*2.2),
+          life:1,size:Math.random()*2.5+0.8,r:Math.floor(120+Math.random()*110),g2:Math.floor(150+Math.random()*90)});}
     }
-    trails.forEach(t=>{t.life-=0.008;if(t.life>0){
-      const grd=mCtx.createRadialGradient(t.x,t.y,0,t.x,t.y,80);
-      grd.addColorStop(0,'rgba(120,155,255,'+(0.35*t.life)+')');grd.addColorStop(1,'rgba(0,0,0,0)');
-      mCtx.beginPath();mCtx.arc(t.x,t.y,80,0,Math.PI*2);mCtx.fillStyle=grd;mCtx.fill();}});
+    trails.forEach(t=>{t.life-=0.007;if(t.life>0){
+      const grd=mCtx.createRadialGradient(t.x,t.y,0,t.x,t.y,85);
+      grd.addColorStop(0,'rgba(110,150,255,'+(0.38*t.life)+')');grd.addColorStop(1,'rgba(0,0,0,0)');
+      mCtx.beginPath();mCtx.arc(t.x,t.y,85,0,Math.PI*2);mCtx.fillStyle=grd;mCtx.fill();}});
     trails=trails.filter(t=>t.life>0);
+    // Particles on overlay canvas
     pCtx.clearRect(0,0,W,H);
-    fparts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.016;
+    fparts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.015;
       if(p.life>0){pCtx.beginPath();pCtx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
         pCtx.fillStyle='rgba('+p.r+','+p.g2+',255,'+p.life+')';pCtx.fill();}});
     fparts=fparts.filter(p=>p.life>0);
     ambients.forEach(a=>{if(a.life>0){pCtx.beginPath();pCtx.arc(a.x,a.y,a.size*a.life,0,Math.PI*2);
-      pCtx.fillStyle='rgba('+a.r+','+a.g2+',255,'+(a.life*0.55)+')';pCtx.fill();}});
-    if(!phaseChanging&&performance.now()-phaseStart>=PHASE_MS)nextPhase();
+      pCtx.fillStyle='rgba('+a.r+','+a.g2+',255,'+(a.life*0.6)+')';pCtx.fill();}});
   }
 
   function loop() {
@@ -425,7 +414,7 @@ function initExperiencia() {
     if(phase===0){drawBreath();updateAudio(pressing,bv);}
     else if(phase===1)drawConstellations();
     else if(phase===2){drawTouch();updateAudio(pressing,Math.min(1,trails.length/8+fparts.length/20));}
-    else{mCtx.fillStyle='rgba(6,8,24,0.04)';mCtx.fillRect(0,0,W,H);}
+    else{ mCtx.fillStyle='rgba(6,8,24,0.04)';mCtx.fillRect(0,0,W,H); }
   }
 
   btnC.addEventListener('click', goToMemoria);
@@ -452,4 +441,4 @@ function goToMemoria() {
 }
 </script>
 <script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-repl-id="9c165c02-7ae4-4337-97d4-e80e28346a1c"></script></body>
-    </html>
+  </html>
