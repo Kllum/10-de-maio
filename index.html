@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Antes de Continuar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: rgb(6, 8, 24);
+      font-family: 'Georgia', serif;
+      color: #fff;
+    }
+    #page-home, #page-experiencia, #page-memoria {
+      position: fixed; inset: 0; display: none;
+      justify-content: center; align-items: center;
+      flex-direction: column;
+    }
+    #page-home.active, #page-experiencia.active, #page-memoria.active {
+      display: flex;
+    }
+
+    /* HOME */
+    #home-stars {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at center, #0d1130 0%, #06081a 60%, #030510 100%);
+    }
+    #home-content {
+      position: relative; z-index: 10;
+      text-align: center;
+      padding: 0 32px;
+      max-width: 600px;
+      opacity: 0;
+      transition: opacity 2.5s ease;
+    }
+    #home-content.visible { opacity: 1; }
+    #home-line-top {
+      width: 1px; height: 48px;
+      background: linear-gradient(to bottom, transparent, rgba(180,200,255,0.4));
+      margin: 0 auto 40px;
+    }
+    #home-text {
+      font-size: clamp(20px, 4vw, 30px);
+      line-height: 1.65;
+      letter-spacing: 0.04em;
+      color: rgba(220,228,255,0.95);
+      font-style: italic;
+      margin: 0;
+      text-shadow: 0 0 40px rgba(100,120,255,0.3);
+    }
+    #home-line-bottom {
+      width: 1px; height: 48px;
+      background: linear-gradient(to bottom, rgba(180,200,255,0.4), transparent);
+      margin: 40px auto 0;
+    }
+    #btn-comecar {
+      position: relative; z-index: 10;
+      margin-top: 48px;
+      opacity: 0;
+      transition: opacity 2s ease;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(180,200,255,0.35);
+      color: rgba(200,215,255,0.8);
+      font-size: 13px;
+      letter-spacing: 4px;
+      padding: 6px 4px;
+      cursor: pointer;
+      font-family: 'Georgia', serif;
+      text-transform: lowercase;
+    }
+    #btn-comecar.visible { opacity: 1; }
+    #btn-comecar:hover { color: rgba(255,255,255,1); }
+
+    /* EXPERIENCIA */
+    #page-experiencia { background: rgb(6, 8, 24); }
+    #canvas-main, #canvas-particles {
+      position: fixed; inset: 0;
+    }
+    #canvas-main { z-index: 1; }
+    #canvas-particles { z-index: 2; pointer-events: none; }
+    #exp-label {
+      position: fixed; top: 11%; width: 100%;
+      text-align: center;
+      opacity: 0; transition: opacity 1.8s ease;
+      font-size: clamp(14px, 2.5vw, 17px);
+      letter-spacing: 2.5px;
+      color: rgba(215,228,255,0.92);
+      z-index: 10; pointer-events: none;
+      text-shadow: 0 0 20px rgba(100,140,255,0.3);
+    }
+    #exp-quote {
+      position: fixed; bottom: 28%; width: 100%;
+      text-align: center;
+      opacity: 0; transition: opacity 3.5s ease;
+      font-size: clamp(18px, 3.5vw, 26px);
+      letter-spacing: 0.04em; line-height: 1.7;
+      padding: 0 28px;
+      color: rgba(230,238,255,0.95);
+      z-index: 10; pointer-events: none;
+      font-style: italic;
+      text-shadow: 0 0 30px rgba(80,110,255,0.25);
+    }
+    #btn-continuar {
+      position: fixed; bottom: 15%; left: 50%;
+      transform: translateX(-50%);
+      opacity: 0; transition: opacity 2.5s ease;
+      background: transparent; border: none;
+      border-bottom: 1px solid rgba(200,218,255,0.4);
+      color: rgba(215,228,255,0.9);
+      padding: 8px 6px;
+      font-size: clamp(13px, 2vw, 15px);
+      letter-spacing: 4px; cursor: pointer;
+      z-index: 20;
+      font-family: 'Georgia', serif;
+      text-transform: lowercase;
+    }
+    #btn-continuar:hover { color: #fff; }
+
+    /* MEMORIA */
+    #page-memoria {
+      background: #000;
+    }
+    #memoria-img-wrap {
+      position: fixed; inset: 0;
+    }
+    #memoria-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 4s ease;
+      filter: brightness(0.55) saturate(0.7);
+    }
+    #memoria-img.visible { opacity: 1; }
+    #memoria-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(12,6,3,0.78) 0%, rgba(8,4,2,0.3) 38%, transparent 65%);
+    }
+    #memoria-text-wrap {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      z-index: 10; padding: 0 32px 9% 32px;
+      text-align: center;
+      opacity: 0; transition: opacity 3.5s ease;
+    }
+    #memoria-text-wrap.visible { opacity: 1; }
+    #memoria-text {
+      font-size: clamp(16px, 3vw, 22px);
+      line-height: 1.9;
+      letter-spacing: 0.03em;
+      color: rgba(253,242,228,0.97);
+      max-width: 560px;
+      margin: 0 auto;
+      font-style: italic;
+      text-shadow: 0 1px 14px rgba(0,0,0,0.75), 0 4px 28px rgba(0,0,0,0.5);
+    }
+    #memoria-divider {
+      width: 36px; height: 1px;
+      background: rgba(230,200,165,0.5);
+      margin: 28px auto 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- PAGE: HOME -->
+<div id="page-home" class="active">
+  <canvas id="stars-canvas" style="position:fixed;inset:0;z-index:0;"></canvas>
+  <div id="home-content">
+    <div id="home-line-top"></div>
+    <p id="home-text">
+      "Às vezes 30 segundos<br>é só o que precisamos..."
+    </p>
+    <div id="home-line-bottom"></div>
+  </div>
+  <button id="btn-comecar">começar</button>
+</div>
+
+<!-- PAGE: EXPERIÊNCIA -->
+<div id="page-experiencia">
+  <canvas id="canvas-main"></canvas>
+  <canvas id="canvas-particles"></canvas>
+  <div id="exp-label"></div>
+  <div id="exp-quote">"Algumas presenças continuam mesmo em silêncio."</div>
+  <button id="btn-continuar" onclick="goToMemoria()">continuar →</button>
+</div>
+
+<!-- PAGE: MEMÓRIA -->
+<div id="page-memoria">
+  <div id="memoria-img-wrap">
+    <img id="memoria-img" src="https://drive.google.com/thumbnail?id=1GnHHQrv5qz3bx7KnEPByLWAPIX5LcdtJ&sz=w2048" alt="Memória" crossorigin="anonymous" />
+    <div id="memoria-overlay"></div>
+    <div id="memoria-text-wrap">
+      <p id="memoria-text">
+        "Antes do voo, houve braços que impediram a queda.<br><br>
+        Era o amor mais antigo — aquele que nunca pediu reconhecimento, apenas existe."
+      </p>
+      <div id="memoria-divider"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── NAVEGAÇÃO ───────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('#page-home, #page-experiencia, #page-memoria')
+    .forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+(function initHome() {
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = Array.from({ length: 160 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.2,
+      a: Math.random(),
+      speed: Math.random() * 0.003 + 0.001,
+      phase: Math.random() * Math.PI * 2
+    }));
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let frame = 0;
+  function drawStars() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgb(6,8,24)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    frame++;
+    stars.forEach(s => {
+      s.phase += s.speed;
+      const alpha = (Math.sin(s.phase) * 0.5 + 0.5) * s.a;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,215,255,${alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  }
+  drawStars();
+
+  // Fade in text then button
+  setTimeout(() => {
+    document.getElementById('home-content').classList.add('visible');
+  }, 600);
+  setTimeout(() => {
+    document.getElementById('btn-comecar').classList.add('visible');
+  }, 2000);
+
+  document.getElementById('btn-comecar').addEventListener('click', () => {
+    showPage('page-experiencia');
+    initExperiencia();
+  });
+})();
+
+// ─── EXPERIÊNCIA ──────────────────────────────────────────────────────────────
+let expInitialized = false;
+function initExperiencia() {
+  if (expInitialized) return;
+  expInitialized = true;
+
+  const mainCanvas = document.getElementById('canvas-main');
+  const partCanvas = document.getElementById('canvas-particles');
+  const mCtx = mainCanvas.getContext('2d');
+  const pCtx = partCanvas.getContext('2d');
+  const label = document.getElementById('exp-label');
+  const quote = document.getElementById('exp-quote');
+  const btnCont = document.getElementById('btn-continuar');
+
+  let W, H;
+  function resize() {
+    W = mainCanvas.width = partCanvas.width = window.innerWidth;
+    H = mainCanvas.height = partCanvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Audio
+  let audioCtx = null;
+  function getAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  let gainNode = null, oscNode = null;
+  function startAudio() {
+    try {
+      const ac = getAudio();
+      gainNode = ac.createGain();
+      gainNode.gain.setValueAtTime(0, ac.currentTime);
+      gainNode.connect(ac.destination);
+      oscNode = ac.createOscillator();
+      oscNode.type = 'sine';
+      oscNode.frequency.setValueAtTime(80, ac.currentTime);
+      oscNode.connect(gainNode);
+      oscNode.start();
+    } catch(e) {}
+  }
+
+  // State
+  let phase = 0; // 0=breath, 1=constellations, 2=touch, 3=done, 4=finale
+  let breathVal = 0; // 0..1
+  let pressing = false;
+  let breathCycles = 0;
+  let holdCount = 0;
+  let particles = [];
+  let stars2 = [];
+  let constellations = [];
+  let pointerX = W/2, pointerY = H/2;
+  let animFrame = 0;
+  let frameCount = 0;
+  let phaseFrame = 0;
+  let constellationDone = false;
+  let audioStarted = false;
+
+  function setLabel(text, opacity) {
+    label.textContent = text;
+    label.style.opacity = opacity;
+  }
+
+  function setPhase(p) {
+    phase = p;
+    phaseFrame = 0;
+    particles = [];
+    if (p === 1) {
+      setTimeout(() => {
+        stars2 = Array.from({ length: 80 }, () => ({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 1.5 + 0.3,
+          a: Math.random() * 0.7 + 0.2
+        }));
+        setLabel('mova o dedo — crie constelações', '0.85');
+      }, 700);
+    }
+    if (p === 2) {
+      mCtx.clearRect(0, 0, W, H);
+      setLabel('toque a tela', '0.85');
+      setTimeout(() => setLabel('', '0'), 6000);
+    }
+    if (p === 3) {
+      setLabel('', '0');
+      // Submit to google forms
+      sendJourneyComplete();
+      setTimeout(() => {
+        quote.style.opacity = '1';
+        setTimeout(() => {
+          btnCont.style.opacity = '1';
+        }, 2200);
+      }, 800);
+    }
+  }
+
+  function sendJourneyComplete() {
+    try {
+      const url = 'https://docs.google.com/forms/d/e/1FAIpQLSdwhlo8fdEGi7vjCGlY2FeBCBfhYdnQjgGCLKFCGgceTNnjGw/formResponse';
+      const body = new URLSearchParams({'entry.1196602189': 'Jornada concluída!'});
+      fetch(url, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body.toString() }).catch(() => {});
+    } catch(e) {}
+  }
+
+  function onPointer(e) {
+    const t = e.touches ? e.touches[0] : e;
+    pointerX = t.clientX; pointerY = t.clientY;
+    if (!audioStarted) { startAudio(); audioStarted = true; }
+  }
+
+  window.addEventListener('pointerdown', e => { onPointer(e); pressing = true; });
+  window.addEventListener('pointerup', () => { pressing = false; });
+  window.addEventListener('pointermove', e => { if (pressing || phase >= 1) onPointer(e); });
+  window.addEventListener('touchstart', e => { onPointer(e); pressing = true; }, { passive: true });
+  window.addEventListener('touchend', () => { pressing = false; });
+  window.addEventListener('touchmove', e => { if (pressing || phase >= 1) onPointer(e); }, { passive: true });
+
+  const MAX_HOLD = 3; // full breath cycles before phase transition
+  const CONSTELLATION_TIME = 18000; // 18s in constellation phase
+
+  let constellationStart = null;
+
+  function drawBreath() {
+    mCtx.fillStyle = 'rgba(6,8,24,0.22)';
+    mCtx.fillRect(0, 0, W, H);
+
+    if (pressing) {
+      breathVal = Math.min(1, breathVal + 0.016);
+    } else {
+      breathVal = Math.max(0, breathVal - 0.013);
+    }
+
+    const prevFull = breathVal >= 0.95;
+
+    const r = 70 + breathVal * 112;
+    const rOuter = r + 32 * breathVal;
+
+    // Outer glow
+    const g = mCtx.createRadialGradient(W/2, H/2, r*0.6, W/2, H/2, rOuter);
+    g.addColorStop(0, `rgba(160,185,255,${0.18 * breathVal})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    mCtx.beginPath();
+    mCtx.arc(W/2, H/2, rOuter, 0, Math.PI*2);
+    mCtx.fillStyle = g;
+    mCtx.fill();
+
+    // Main circle
+    mCtx.beginPath();
+    mCtx.arc(W/2, H/2, r, 0, Math.PI*2);
+    mCtx.strokeStyle = `rgba(255,255,255,${0.3 + 0.6*breathVal})`;
+    mCtx.lineWidth = 1.5 + breathVal * 1.8;
+    mCtx.stroke();
+
+    // Inner dot
+    mCtx.beginPath();
+    mCtx.arc(W/2, H/2, r*0.22*breathVal, 0, Math.PI*2);
+    mCtx.fillStyle = `rgba(200,215,255,${0.14*breathVal})`;
+    mCtx.fill();
+
+    // Particles on full breath
+    if (pressing && breathVal > 0.25 && Math.random() < 0.35) {
+      const angle = Math.random() * Math.PI * 2;
+      particles.push({
+        x: W/2 + Math.cos(angle)*(r + Math.random()*15),
+        y: H/2 + Math.sin(angle)*(r + Math.random()*15),
+        vx: Math.cos(angle)*(0.25+Math.random()*0.5),
+        vy: Math.sin(angle)*(0.25+Math.random()*0.5),
+        life: 1,
+        size: Math.random()*1.5+0.4,
+        color: 'rgba(170,205,255,0.85)'
+      });
+    }
+
+    // Breath label
+    const lbl = (!pressing && breathVal > 0.12) ? 'Solte · Expire' : 'Segure · Inspire';
+    setLabel(lbl, '0.88');
+
+    // Count full breath cycles
+    if (breathVal >= 0.95 && !holdCount) { holdCount++; }
+    if (breathVal < 0.08 && holdCount) { holdCount = 0; breathCycles++; }
+
+    if (breathCycles >= MAX_HOLD) {
+      // stop audio
+      if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.8);
+      setPhase(1);
+      constellationStart = performance.now();
+    }
+  }
+
+  function drawConstellations() {
+    // Fade to dark
+    mCtx.fillStyle = 'rgba(6,8,24,0.12)';
+    mCtx.fillRect(0, 0, W, H);
+
+    // Draw stars
+    stars2.forEach(s => {
+      mCtx.beginPath();
+      mCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      mCtx.fillStyle = `rgba(220,228,255,${s.a})`;
+      mCtx.fill();
+    });
+
+    // Draw constellation lines near pointer
+    if (pressing) {
+      constellations.push({ x: pointerX, y: pointerY });
+      if (constellations.length > 80) constellations.shift();
+    }
+    if (constellations.length > 1) {
+      mCtx.beginPath();
+      mCtx.moveTo(constellations[0].x, constellations[0].y);
+      for (let i = 1; i < constellations.length; i++) {
+        mCtx.lineTo(constellations[i].x, constellations[i].y);
+      }
+      mCtx.strokeStyle = 'rgba(180,210,255,0.35)';
+      mCtx.lineWidth = 1;
+      mCtx.stroke();
+
+      // Dots at positions
+      constellations.forEach((p, i) => {
+        if (i % 6 === 0) {
+          mCtx.beginPath();
+          mCtx.arc(p.x, p.y, 2, 0, Math.PI*2);
+          mCtx.fillStyle = 'rgba(200,220,255,0.6)';
+          mCtx.fill();
+        }
+      });
+    }
+
+    // Check time
+    if (constellationStart && performance.now() - constellationStart > CONSTELLATION_TIME) {
+      setPhase(2);
+    }
+  }
+
+  let touchTrails = [];
+  let finalParticles = [];
+
+  function drawTouch() {
+    mCtx.fillStyle = 'rgba(6,8,24,0.08)';
+    mCtx.fillRect(0, 0, W, H);
+
+    if (pressing) {
+      touchTrails.push({ x: pointerX, y: pointerY, life: 1 });
+      for (let i = 0; i < 3; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        finalParticles.push({
+          x: pointerX, y: pointerY,
+          vx: Math.cos(angle) * (0.5 + Math.random()*1.5),
+          vy: Math.sin(angle) * (0.5 + Math.random()*1.5),
+          life: 1, size: Math.random()*2+0.5,
+          color: `rgba(${Math.floor(160+Math.random()*80)},${Math.floor(180+Math.random()*60)},255,0.85)`
+        });
+      }
+    }
+
+    // Draw trails
+    touchTrails.forEach(t => {
+      t.life -= 0.012;
+      if (t.life > 0) {
+        const g2 = mCtx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 60);
+        g2.addColorStop(0, `rgba(130,160,255,${0.25*t.life})`);
+        g2.addColorStop(1, 'rgba(0,0,0,0)');
+        mCtx.beginPath();
+        mCtx.arc(t.x, t.y, 60, 0, Math.PI*2);
+        mCtx.fillStyle = g2;
+        mCtx.fill();
+      }
+    });
+    touchTrails = touchTrails.filter(t => t.life > 0);
+
+    // Particles
+    pCtx.clearRect(0, 0, W, H);
+    finalParticles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      p.life -= 0.018;
+      if (p.life > 0) {
+        pCtx.beginPath();
+        pCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+        pCtx.fillStyle = p.color.replace(/[\d.]+\)$/, `${p.life})`);
+        pCtx.fill();
+      }
+    });
+    finalParticles = finalParticles.filter(p => p.life > 0);
+
+    phaseFrame++;
+    if (phaseFrame > 380) { // ~6-7 seconds
+      setPhase(3);
+    }
+  }
+
+  function drawParticles() {
+    pCtx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.life -= 0.018;
+      if (p.life > 0) {
+        pCtx.beginPath();
+        pCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+        pCtx.fillStyle = p.color.replace(/[\d.]+\)$/, `${p.life})`);
+        pCtx.fill();
+      }
+    });
+    particles = particles.filter(p => p.life > 0);
+  }
+
+  // Update audio
+  function updateAudio() {
+    if (!gainNode || !oscNode || !audioCtx) return;
+    try {
+      const targetGain = pressing ? 0.18 + breathVal*0.2 : 0.1 + breathVal*0.1;
+      const targetFreq = pressing ? 150 + breathVal*580 : 80 + breathVal*340;
+      gainNode.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.1);
+      oscNode.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.12);
+    } catch(e) {}
+  }
+
+  function loop() {
+    animFrame = requestAnimationFrame(loop);
+    frameCount++;
+
+    if (phase === 0) {
+      drawBreath();
+      drawParticles();
+      updateAudio();
+    } else if (phase === 1) {
+      drawConstellations();
+    } else if (phase === 2) {
+      drawTouch();
+    } else {
+      // Done — just keep canvas dark
+      mCtx.fillStyle = 'rgba(6,8,24,0.04)';
+      mCtx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // Initial label
+  setTimeout(() => setLabel('Segure · Inspire', '0.88'), 800);
+  loop();
+}
+
+function goToMemoria() {
+  showPage('page-memoria');
+  const img = document.getElementById('memoria-img');
+  const textWrap = document.getElementById('memoria-text-wrap');
+  setTimeout(() => { img.classList.add('visible'); }, 300);
+  setTimeout(() => { textWrap.classList.add('visible'); }, 2500);
+}
+</script>
+<script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-repl-id="9c165c02-7ae4-4337-97d4-e80e28346a1c"></script></body>
+</html>
