@@ -211,9 +211,9 @@ function makeNoiseBuf(sec) {
 }
 function stopBreath() {
   if (!breathNodes) return;
-  try { breathNodes.gain.gain.setTargetAtTime(0, AC.currentTime, 0.25); } catch(e){}
+  try { breathNodes.gain.gain.setTargetAtTime(0, AC.currentTime, 0.3); } catch(e){}
   const n = breathNodes; breathNodes = null;
-  setTimeout(() => { try { n.src.stop(); } catch(e){} }, 700);
+  setTimeout(() => { try { n.src.stop(); } catch(e){} }, 800);
 }
 function startBreathSound(isInhale) {
   stopBreath();
@@ -221,49 +221,76 @@ function startBreathSound(isInhale) {
     const ac = getAC();
     const src = ac.createBufferSource();
     src.buffer = makeNoiseBuf(4); src.loop = true;
-    const filter = ac.createBiquadFilter();
-    filter.type = 'bandpass'; filter.Q.value = 0.7;
+
     if (isInhale) {
-      filter.frequency.setValueAtTime(500, ac.currentTime);
-      filter.frequency.linearRampToValueAtTime(2000, ac.currentTime + 4);
+      // Inspirar: ruído HIGHPASS = som "shhhhh" de ar entrando (sem ressonância)
+      const hpf = ac.createBiquadFilter();
+      hpf.type = 'highpass'; hpf.frequency.value = 4000; hpf.Q.value = 0.3;
+      const shelf = ac.createBiquadFilter();
+      shelf.type = 'highshelf'; shelf.frequency.value = 10000; shelf.gain.value = -8;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, ac.currentTime);
+      g.gain.linearRampToValueAtTime(0.18, ac.currentTime + 1.2);
+      src.connect(hpf); hpf.connect(shelf); shelf.connect(g); g.connect(ac.destination);
+      src.start();
+      breathNodes = { src, gain: g };
     } else {
-      filter.frequency.setValueAtTime(1800, ac.currentTime);
-      filter.frequency.linearRampToValueAtTime(350, ac.currentTime + 7);
+      // Expirar: LOWPASS bem suave = som "hhhhh" de ar saindo, mais grave
+      const lpf = ac.createBiquadFilter();
+      lpf.type = 'lowpass'; lpf.frequency.value = 800; lpf.Q.value = 0.2;
+      // Gain cai devagar simulando ar esvaziando
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, ac.currentTime);
+      g.gain.linearRampToValueAtTime(0.12, ac.currentTime + 0.6);
+      g.gain.linearRampToValueAtTime(0.04, ac.currentTime + 6);
+      src.connect(lpf); lpf.connect(g); g.connect(ac.destination);
+      src.start();
+      breathNodes = { src, gain: g };
     }
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(0.06, ac.currentTime + 0.5);
-    src.connect(filter); filter.connect(g); g.connect(ac.destination);
-    src.start();
-    breathNodes = { src, gain: g };
   } catch(e){}
 }
 function startOcean() {
   if (oceanNodes) return;
   try {
     const ac = getAC();
-    const src = ac.createBufferSource();
-    src.buffer = makeNoiseBuf(5); src.loop = true;
-    const lpf = ac.createBiquadFilter();
-    lpf.type = 'lowpass'; lpf.frequency.value = 380;
+    // Camada 1: rumble grave — som de corpo da onda
+    const s1 = ac.createBufferSource();
+    s1.buffer = makeNoiseBuf(6); s1.loop = true;
+    const lp1 = ac.createBiquadFilter(); lp1.type='lowpass'; lp1.frequency.value=140; lp1.Q.value=0.5;
+    const g1 = ac.createGain(); g1.gain.value = 0.6;
+    s1.connect(lp1); lp1.connect(g1);
+
+    // Camada 2: médio — espuma quebrando
+    const s2 = ac.createBufferSource();
+    s2.buffer = makeNoiseBuf(6); s2.loop = true;
+    const lp2 = ac.createBiquadFilter(); lp2.type='lowpass'; lp2.frequency.value=380; lp2.Q.value=0.3;
+    const hp2 = ac.createBiquadFilter(); hp2.type='highpass'; hp2.frequency.value=120; hp2.Q.value=0.3;
+    const g2 = ac.createGain(); g2.gain.value = 0.4;
+    s2.connect(lp2); lp2.connect(hp2); hp2.connect(g2);
+
+    // LFO — ritmo de onda entrando e saindo (~7s por ciclo)
     const lfo = ac.createOscillator();
-    lfo.type = 'sine'; lfo.frequency.value = 0.11;
-    const lfoG = ac.createGain(); lfoG.gain.value = 0.025;
+    lfo.type = 'sine'; lfo.frequency.value = 0.14;
+    const lfoG = ac.createGain(); lfoG.gain.value = 0.028;
     lfo.connect(lfoG);
+
     const masterG = ac.createGain();
     masterG.gain.setValueAtTime(0, ac.currentTime);
-    masterG.gain.linearRampToValueAtTime(0.055, ac.currentTime + 2.5);
+    masterG.gain.linearRampToValueAtTime(0.065, ac.currentTime + 3);
     lfoG.connect(masterG.gain);
-    src.connect(lpf); lpf.connect(masterG); masterG.connect(ac.destination);
-    lfo.start(); src.start();
-    oceanNodes = { src, lfo, gain: masterG };
+
+    g1.connect(masterG); g2.connect(masterG); masterG.connect(ac.destination);
+    lfo.start(); s1.start(); s2.start();
+    oceanNodes = { srcs:[s1,s2], lfo, gain: masterG };
   } catch(e){}
 }
 function stopOcean() {
   if (!oceanNodes) return;
-  try { oceanNodes.gain.gain.setTargetAtTime(0, AC.currentTime, 0.6); } catch(e){}
+  try { oceanNodes.gain.gain.setTargetAtTime(0, AC.currentTime, 0.8); } catch(e){}
   const n = oceanNodes; oceanNodes = null;
-  setTimeout(() => { try { n.src.stop(); n.lfo.stop(); } catch(e){} }, 2000);
+  setTimeout(() => {
+    try { n.srcs.forEach(s=>s.stop()); n.lfo.stop(); } catch(e){}
+  }, 2500);
 }
 function stopAllSounds() {
   stopBreath(); stopOcean();
