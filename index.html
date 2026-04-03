@@ -191,6 +191,107 @@ function showPage(id) {
   document.getElementById(id).classList.add('active');
 }
 
+// ── AUDIO (global — used by both experience and memoria pages) ────────────────
+let AC = null;
+let breathNodes = null;
+let oceanNodes  = null;
+let pianoTimer  = null;
+
+function getAC() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (AC.state === 'suspended') AC.resume().catch(()=>{});
+  return AC;
+}
+function makeNoiseBuf(sec) {
+  const ac = getAC(), len = ac.sampleRate * sec;
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+}
+function stopBreath() {
+  if (!breathNodes) return;
+  try { breathNodes.gain.gain.setTargetAtTime(0, AC.currentTime, 0.25); } catch(e){}
+  const n = breathNodes; breathNodes = null;
+  setTimeout(() => { try { n.src.stop(); } catch(e){} }, 700);
+}
+function startBreathSound(isInhale) {
+  stopBreath();
+  try {
+    const ac = getAC();
+    const src = ac.createBufferSource();
+    src.buffer = makeNoiseBuf(4); src.loop = true;
+    const filter = ac.createBiquadFilter();
+    filter.type = 'bandpass'; filter.Q.value = 0.7;
+    if (isInhale) {
+      filter.frequency.setValueAtTime(500, ac.currentTime);
+      filter.frequency.linearRampToValueAtTime(2000, ac.currentTime + 4);
+    } else {
+      filter.frequency.setValueAtTime(1800, ac.currentTime);
+      filter.frequency.linearRampToValueAtTime(350, ac.currentTime + 7);
+    }
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(0.06, ac.currentTime + 0.5);
+    src.connect(filter); filter.connect(g); g.connect(ac.destination);
+    src.start();
+    breathNodes = { src, gain: g };
+  } catch(e){}
+}
+function startOcean() {
+  if (oceanNodes) return;
+  try {
+    const ac = getAC();
+    const src = ac.createBufferSource();
+    src.buffer = makeNoiseBuf(5); src.loop = true;
+    const lpf = ac.createBiquadFilter();
+    lpf.type = 'lowpass'; lpf.frequency.value = 380;
+    const lfo = ac.createOscillator();
+    lfo.type = 'sine'; lfo.frequency.value = 0.11;
+    const lfoG = ac.createGain(); lfoG.gain.value = 0.025;
+    lfo.connect(lfoG);
+    const masterG = ac.createGain();
+    masterG.gain.setValueAtTime(0, ac.currentTime);
+    masterG.gain.linearRampToValueAtTime(0.055, ac.currentTime + 2.5);
+    lfoG.connect(masterG.gain);
+    src.connect(lpf); lpf.connect(masterG); masterG.connect(ac.destination);
+    lfo.start(); src.start();
+    oceanNodes = { src, lfo, gain: masterG };
+  } catch(e){}
+}
+function stopOcean() {
+  if (!oceanNodes) return;
+  try { oceanNodes.gain.gain.setTargetAtTime(0, AC.currentTime, 0.6); } catch(e){}
+  const n = oceanNodes; oceanNodes = null;
+  setTimeout(() => { try { n.src.stop(); n.lfo.stop(); } catch(e){} }, 2000);
+}
+function stopAllSounds() {
+  stopBreath(); stopOcean();
+  if (pianoTimer) { clearTimeout(pianoTimer); pianoTimer = null; }
+}
+function startPiano() {
+  const ac = getAC();
+  const notes = [261.6, 293.7, 329.6, 392.0, 440.0, 392.0];
+  function playNote() {
+    try {
+      const freq = notes[Math.floor(Math.random() * notes.length)];
+      const osc1 = ac.createOscillator(); osc1.type='sine'; osc1.frequency.value = freq;
+      const osc2 = ac.createOscillator(); osc2.type='sine'; osc2.frequency.value = freq * 2.01;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0, ac.currentTime);
+      g.gain.linearRampToValueAtTime(0.038, ac.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 5);
+      const g2 = ac.createGain(); g2.gain.value = 0.012;
+      osc1.connect(g); g.connect(ac.destination);
+      osc2.connect(g2); g2.connect(ac.destination);
+      osc1.start(); osc2.start();
+      osc1.stop(ac.currentTime + 5.5); osc2.stop(ac.currentTime + 5.5);
+    } catch(e){}
+    pianoTimer = setTimeout(playNote, 2800 + Math.random() * 2800);
+  }
+  playNote();
+}
+
 // ── HOME ──────────────────────────────────────────────────────────────────────
 (function initHome() {
   const canvas = document.getElementById('stars-canvas');
@@ -244,24 +345,6 @@ function initExperiencia() {
   function resize() { W=MC.width=PC.width=window.innerWidth; H=MC.height=PC.height=window.innerHeight; }
   resize(); window.addEventListener('resize', resize);
 
-  // Audio
-  let AC=null, gain=null, osc=null, audioOn=false;
-  function startAudio() {
-    try {
-      AC=new(window.AudioContext||window.webkitAudioContext)();
-      gain=AC.createGain(); gain.gain.setValueAtTime(0,AC.currentTime); gain.connect(AC.destination);
-      osc=AC.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(80,AC.currentTime);
-      osc.connect(gain); osc.start();
-    } catch(e){}
-  }
-  function updateAudio(p,bv) {
-    if(!gain||!osc||!AC) return;
-    try {
-      gain.gain.setTargetAtTime(p?0.18+bv*0.2:0.1+bv*0.1,AC.currentTime,0.1);
-      osc.frequency.setTargetAtTime(p?150+bv*580:80+bv*340,AC.currentTime,0.12);
-    } catch(e){}
-  }
-
   // Phase is driven by setTimeout — NOT per-frame timer checks (avoids skip bugs)
   let phase = 0;
   let bv=0, pressing=false, pressStart=0, showRelease=false;
@@ -276,7 +359,7 @@ function initExperiencia() {
   setTimeout(() => {
     phase = 1;
     mCtx.clearRect(0,0,W,H);
-    if(gain&&AC) gain.gain.setTargetAtTime(0,AC.currentTime,0.8);
+    stopAllSounds();
     stars2 = Array.from({length:80},()=>({
       x:Math.random()*W, y:Math.random()*H,
       r:Math.random()*1.5+0.3, a:Math.random()*0.7+0.2
@@ -292,9 +375,10 @@ function initExperiencia() {
     setLabel('deslize o dedo pela tela','0.85');
   }, 60000);
 
-  // Phase 2 → 3 after 90s (end of touch trails)
+  // Phase 2 → 3 after 90s (end of touch trails) — silence again
   setTimeout(() => {
     phase = 3;
+    stopAllSounds();
     setLabel('','0');
     sendForm();
     setTimeout(()=>{
@@ -317,9 +401,17 @@ function initExperiencia() {
   }
 
   function gt(e){ return e.touches?e.touches[0]:e; }
-  function onDown(e){ const t=gt(e);px=t.clientX;py=t.clientY;pressing=true;pressStart=Date.now();if(!audioOn){startAudio();audioOn=true;} }
+  function onDown(e){
+    const t=gt(e); px=t.clientX; py=t.clientY; pressing=true; pressStart=Date.now();
+    if(phase===0){ startBreathSound(true); }        // inhale when pressing breath
+    else if(phase===2){ startOcean(); }             // ocean when touching blue scene
+  }
   function onMove(e){ e.preventDefault();if(!pressing&&phase<1)return;const t=gt(e);px=t.clientX;py=t.clientY; }
-  function onUp(){ pressing=false; }
+  function onUp(){
+    pressing=false;
+    if(phase===0){ stopBreath(); }                  // silence on release during breathing
+    else if(phase===2){ stopOcean(); }              // stop ocean on release
+  }
 
   const expPage = document.getElementById('page-experiencia');
   const isExp = ()=>expPage.classList.contains('active');
@@ -333,7 +425,7 @@ function initExperiencia() {
   // ── CENA 1: Respiração ───────────────────────────────────────────────────────
   function drawBreath() {
     mCtx.fillStyle='rgba(6,8,24,0.22)'; mCtx.fillRect(0,0,W,H);
-    bv = pressing ? Math.min(1,bv+0.016) : Math.max(0,bv-0.004);
+    bv = pressing ? Math.min(1,bv+0.016) : Math.max(0,bv-0.00133);
     const r=70+bv*112, ro=r+32*bv;
     const g=mCtx.createRadialGradient(W/2,H/2,r*.6,W/2,H/2,ro);
     g.addColorStop(0,'rgba(160,185,255,'+(0.18*bv)+')'); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -347,8 +439,12 @@ function initExperiencia() {
       parts.push({x:W/2+Math.cos(a)*(r+Math.random()*15),y:H/2+Math.sin(a)*(r+Math.random()*15),
         vx:Math.cos(a)*(0.25+Math.random()*0.5),vy:Math.sin(a)*(0.25+Math.random()*0.5),life:1,size:Math.random()*1.5+0.4});
     }
-    if(pressing && Date.now()-pressStart>=3000) showRelease=true;
-    if(!pressing && bv<0.05) showRelease=false;
+    const held3s = pressing && Date.now()-pressStart >= 3000;
+    if(held3s && !showRelease){
+      showRelease = true;
+      startBreathSound(false);  // switch to exhale sound after 3s
+    }
+    if(!pressing && bv < 0.05) showRelease = false;
     setLabel(showRelease ? 'Solte · Expire' : 'Segure · Inspire', '0.88');
     pCtx.clearRect(0,0,W,H);
     parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.018;
@@ -411,9 +507,9 @@ function initExperiencia() {
   function loop() {
     requestAnimationFrame(loop);
     if(!isExp()) return;
-    if(phase===0){drawBreath();updateAudio(pressing,bv);}
-    else if(phase===1)drawConstellations();
-    else if(phase===2){drawTouch();updateAudio(pressing,Math.min(1,trails.length/8+fparts.length/20));}
+    if(phase===0) drawBreath();
+    else if(phase===1) drawConstellations();
+    else if(phase===2) drawTouch();
     else{ mCtx.fillStyle='rgba(6,8,24,0.04)';mCtx.fillRect(0,0,W,H); }
   }
 
@@ -430,6 +526,9 @@ function goToMemoria() {
   const overlay = document.getElementById('mem-overlay');
   const text    = document.getElementById('mem-text-wrap');
 
+  // Very soft piano notes — starts immediately, very low volume
+  startPiano();
+
   // Trigger: fade in as B&W then gradually colorize over 30s via CSS animation
   requestAnimationFrame(() => img.classList.add('animating'));
 
@@ -441,4 +540,4 @@ function goToMemoria() {
 }
 </script>
 <script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-repl-id="9c165c02-7ae4-4337-97d4-e80e28346a1c"></script></body>
-     </html>
+    </html>
