@@ -171,8 +171,8 @@
   <div id="mem-overlay"></div>
   <div id="mem-text-wrap">
     <p id="mem-text">
-      &ldquo;Antes do voo, houve braços que impediram a queda.<br><br>
-      Era o amor mais antigo &mdash; aquele que nunca pediu reconhecimento, apenas existe.&rdquo;
+      &ldquo;Antes do voo, há braços que impedem a queda.<br><br>
+      O amor mais antigo é aquele que nunca pediu reconhecimento, apenas existe.&rdquo;
     </p>
     <div id="mem-divider"></div>
   </div>
@@ -332,7 +332,7 @@ function startPiano() {
         ytPlayer.setVolume(38);
         ytPlayer.seekTo(0, true);
         ytPlayer.playVideo();
-        // Fade out suavemente nos últimos 5s e para aos 30s
+        // Fade out suavemente nos últimos 5s e para em 1:51 (111s)
         pianoTimer = setTimeout(() => {
           try {
             let vol = 38;
@@ -342,7 +342,7 @@ function startPiano() {
               else { try { ytPlayer.setVolume(vol); } catch(e){} }
             }, 300);
           } catch(e){}
-        }, 25000);
+        }, 106000);
       } else {
         pianoTimer = setTimeout(tryPlay, 800);
       }
