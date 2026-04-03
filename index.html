@@ -42,7 +42,7 @@
     .line-deco.down { background:linear-gradient(to bottom,rgba(180,200,255,0.4),transparent); margin-top:40px; }
     .line-deco.top  { margin-bottom:40px; }
     #home-text {
-      font-size:clamp(20px,4vw,30px); line-height:1.65;
+      font-size:clamp(24px,4vw,34px); line-height:1.65;
       letter-spacing:0.04em; color:rgba(220,228,255,0.95);
       font-style:italic; margin:0;
       text-shadow:0 0 40px rgba(100,120,255,0.3);
@@ -53,7 +53,7 @@
       background:transparent; border:none;
       border-bottom:1px solid rgba(180,200,255,0.35);
       color:rgba(200,215,255,0.8);
-      font-size:13px; letter-spacing:4px; padding:6px 4px;
+      font-size:17px; letter-spacing:4px; padding:6px 4px;
       cursor:pointer; font-family:'Georgia',serif; text-transform:lowercase;
     }
     #btn-comecar.visible { opacity:1; }
@@ -66,14 +66,14 @@
     #exp-label {
       position:fixed; top:11%; width:100%; text-align:center;
       opacity:0; transition:opacity 1.8s ease;
-      font-size:clamp(14px,2.5vw,17px); letter-spacing:2.5px;
+      font-size:clamp(18px,2.5vw,21px); letter-spacing:2.5px;
       color:rgba(215,228,255,0.92); z-index:10; pointer-events:none;
       text-shadow:0 0 20px rgba(100,140,255,0.3);
     }
     #exp-quote {
       position:fixed; bottom:28%; width:100%; text-align:center;
       opacity:0; transition:opacity 3.5s ease;
-      font-size:clamp(18px,3.5vw,26px); letter-spacing:0.04em; line-height:1.7;
+      font-size:clamp(22px,3.5vw,30px); letter-spacing:0.04em; line-height:1.7;
       padding:0 28px; color:rgba(230,238,255,0.95);
       z-index:10; pointer-events:none; font-style:italic;
       text-shadow:0 0 30px rgba(80,110,255,0.25);
@@ -85,7 +85,7 @@
       background:transparent; border:none;
       border-bottom:1px solid rgba(200,218,255,0.4);
       color:rgba(215,228,255,0.9);
-      padding:8px 6px; font-size:clamp(13px,2vw,15px);
+      padding:8px 6px; font-size:clamp(17px,2vw,19px);
       letter-spacing:4px; cursor:pointer; z-index:20;
       font-family:'Georgia',serif; text-transform:lowercase; white-space:nowrap;
     }
@@ -130,7 +130,7 @@
     }
     #mem-text-wrap.visible { opacity:1; }
     #mem-text {
-      font-size:clamp(16px,3vw,22px); line-height:1.95;
+      font-size:clamp(20px,3vw,26px); line-height:1.95;
       letter-spacing:0.03em; color:rgba(253,242,228,0.97);
       max-width:560px; margin:0 auto;
       font-style:italic;
@@ -276,7 +276,7 @@ function startOcean() {
 
     const masterG = ac.createGain();
     masterG.gain.setValueAtTime(0, ac.currentTime);
-    masterG.gain.linearRampToValueAtTime(0.065, ac.currentTime + 3);
+    masterG.gain.linearRampToValueAtTime(0.085, ac.currentTime + 3);
     lfoG.connect(masterG.gain);
 
     g1.connect(masterG); g2.connect(masterG); masterG.connect(ac.destination);
@@ -298,23 +298,47 @@ function stopAllSounds() {
 }
 function startPiano() {
   const ac = getAC();
-  const notes = [261.6, 293.7, 329.6, 392.0, 440.0, 392.0];
+  // Melody of "When I Lost My Heart To You (Hallelujah)" - Hillsong, key of G
+  // Hallelujah chorus main theme + verse melody
+  const melody = [
+    // Hallelujah chorus: Hal-le-lu-jah
+    {f:392.0, d:0.6}, {f:392.0, d:0.3}, {f:440.0, d:0.6}, {f:392.0, d:0.6},
+    {f:329.6, d:0.4}, {f:293.7, d:1.0}, {f:0, d:0.5},
+    {f:392.0, d:0.6}, {f:392.0, d:0.3}, {f:440.0, d:0.6}, {f:392.0, d:0.6},
+    {f:349.2, d:0.4}, {f:329.6, d:1.2}, {f:0, d:0.5},
+    // When I lost my heart to You
+    {f:293.7, d:0.5}, {f:329.6, d:0.5}, {f:392.0, d:0.5}, {f:440.0, d:0.5},
+    {f:493.9, d:0.7}, {f:440.0, d:0.5}, {f:392.0, d:1.0}, {f:0, d:0.4},
+    {f:349.2, d:0.5}, {f:392.0, d:0.5}, {f:440.0, d:0.5}, {f:493.9, d:0.7},
+    {f:523.3, d:0.5}, {f:493.9, d:0.4}, {f:440.0, d:1.2}, {f:0, d:0.6},
+    // Repeat chorus
+    {f:392.0, d:0.6}, {f:392.0, d:0.3}, {f:440.0, d:0.6}, {f:392.0, d:0.6},
+    {f:329.6, d:0.4}, {f:293.7, d:1.4}, {f:0, d:1.0},
+  ];
+  let noteIndex = 0;
   function playNote() {
+    const note = melody[noteIndex % melody.length];
+    noteIndex++;
     try {
-      const freq = notes[Math.floor(Math.random() * notes.length)];
-      const osc1 = ac.createOscillator(); osc1.type='sine'; osc1.frequency.value = freq;
-      const osc2 = ac.createOscillator(); osc2.type='sine'; osc2.frequency.value = freq * 2.01;
-      const g = ac.createGain();
-      g.gain.setValueAtTime(0, ac.currentTime);
-      g.gain.linearRampToValueAtTime(0.038, ac.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 5);
-      const g2 = ac.createGain(); g2.gain.value = 0.012;
-      osc1.connect(g); g.connect(ac.destination);
-      osc2.connect(g2); g2.connect(ac.destination);
-      osc1.start(); osc2.start();
-      osc1.stop(ac.currentTime + 5.5); osc2.stop(ac.currentTime + 5.5);
+      if (note.f > 0) {
+        const osc1 = ac.createOscillator(); osc1.type='sine'; osc1.frequency.value = note.f;
+        const osc2 = ac.createOscillator(); osc2.type='sine'; osc2.frequency.value = note.f * 2.002;
+        const osc3 = ac.createOscillator(); osc3.type='sine'; osc3.frequency.value = note.f * 3.01;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, ac.currentTime);
+        g.gain.linearRampToValueAtTime(0.042, ac.currentTime + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + note.d * 2.5 + 1.5);
+        const g2 = ac.createGain(); g2.gain.value = 0.014;
+        const g3 = ac.createGain(); g3.gain.value = 0.006;
+        osc1.connect(g); g.connect(ac.destination);
+        osc2.connect(g2); g2.connect(ac.destination);
+        osc3.connect(g3); g3.connect(ac.destination);
+        osc1.start(); osc2.start(); osc3.start();
+        const stop = ac.currentTime + note.d * 2.5 + 2;
+        osc1.stop(stop); osc2.stop(stop); osc3.stop(stop);
+      }
     } catch(e){}
-    pianoTimer = setTimeout(playNote, 2800 + Math.random() * 2800);
+    pianoTimer = setTimeout(playNote, note.d * 1000 + 380);
   }
   playNote();
 }
@@ -389,7 +413,8 @@ function initExperiencia() {
     stopAllSounds();
     stars2 = Array.from({length:80},()=>({
       x:Math.random()*W, y:Math.random()*H,
-      r:Math.random()*1.5+0.3, a:Math.random()*0.7+0.2
+      r:Math.random()<0.2 ? Math.random()*2.5+2.5 : Math.random()*1.5+0.3,
+      a:Math.random()*0.7+0.2
     }));
     setLabel('mova o dedo — crie constelações','0.85');
   }, 30000);
@@ -452,7 +477,7 @@ function initExperiencia() {
   // ── CENA 1: Respiração ───────────────────────────────────────────────────────
   function drawBreath() {
     mCtx.fillStyle='rgba(6,8,24,0.22)'; mCtx.fillRect(0,0,W,H);
-    bv = pressing ? Math.min(1,bv+0.016) : Math.max(0,bv-0.00133);
+    bv = pressing ? Math.min(1,bv+0.016) : Math.max(0,bv-0.0061);
     const r=70+bv*112, ro=r+32*bv;
     const g=mCtx.createRadialGradient(W/2,H/2,r*.6,W/2,H/2,ro);
     g.addColorStop(0,'rgba(160,185,255,'+(0.18*bv)+')'); g.addColorStop(1,'rgba(0,0,0,0)');
@@ -481,7 +506,14 @@ function initExperiencia() {
   }
 
   // ── CENA 2: Constelações ─────────────────────────────────────────────────────
+  let lastPressing = false;
   function drawConstellations() {
+    // Clear fully when user lifts finger to avoid ghost trail
+    if(lastPressing && !pressing) {
+      mCtx.clearRect(0,0,W,H);
+      consts = [];
+    }
+    lastPressing = pressing;
     mCtx.fillStyle='rgba(6,8,24,0.12)';mCtx.fillRect(0,0,W,H);
     stars2.forEach(s=>{mCtx.beginPath();mCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
       mCtx.fillStyle='rgba(220,228,255,'+s.a+')';mCtx.fill();});
